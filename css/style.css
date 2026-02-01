@@ -1,0 +1,15 @@
+
+#pokemon {
+    width: 200px;
+    height: 200px;
+}
+
+#myInput {
+
+}
+
+#myDiv {
+    display: flex;
+    justify-content: center;
+}
+

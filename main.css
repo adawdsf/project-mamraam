@@ -1,0 +1,31 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    perspective: 1000px;
+}
+
+.box {
+    width: 10vw;
+    height: 8vh;
+    border-radius: 15px;
+    border: 0px;
+    font-size: 20px;
+    color: white;
+    outline: none;
+    transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+    cursor: pointer;
+    background-image: linear-gradient(to right top, rgba(255, 0, 0, 1), rgba(0, 0, 255, 1));
+    transform-origin: left center;
+}
+
+.box:hover {
+    box-shadow: 0 0 40px blue;
+    transform: translateZ(20px) translateY(-20px);
+}
+
+.box.clicked {
+    transform: translateZ(20px) translateY(-20px) scaleX(0);
+}
