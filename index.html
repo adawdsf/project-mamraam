@@ -180,7 +180,8 @@
                         ctx.arc(targetX + (Math.random()-0.5)*100, targetY + (Math.random()-0.5)*100, 5, 0, 7);
                         ctx.fill();
                     }
-                    
+                    targetX = Math.random() * (canvas.width - 200) + 100;
+                    targetY = Math.random() * (canvas.height - 200) + 100;
                     fetchRandomPokemon(); 
                 }
 
