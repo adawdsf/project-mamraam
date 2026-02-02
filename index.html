@@ -71,98 +71,93 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 
     <script>
-       const canvas = document.getElementById('canvas');
+// --- 1. VARIABLES (Place at the very top, before everything else) ---
+const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const video = document.getElementById('video');
 
-// 1. Initialize Pose with the correct file locator
-const pose = new Pose({
-    locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+let catchCount = 0;
+let targetX = 300;
+let targetY = 200;
+
+const pokeImg = new Image();
+pokeImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png";
+
+// --- 2. THE API FUNCTION (Place after variables) ---
+async function fetchRandomPokemon() {
+    try {
+        const randomId = Math.floor(Math.random() * 151) + 1;
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
+        const data = await response.json();
+        pokeImg.src = data.sprites.other['official-artwork'].front_default;
+    } catch (error) {
+        console.error("API Error:", error);
     }
+}
+
+// --- 3. MEDIAPIPE SETUP (Keep this where it was) ---
+const pose = new Pose({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
 });
+// ... keep your pose.setOptions and camera.start code here ...
 
-pose.setOptions({
-    modelComplexity: 1,
-    smoothLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
-});
-
-pose.onResults(onResults);
-
-// 2. Setup Camera
-const camera = new Camera(video, {
-    onFrame: async () => {
-        await pose.send({ image: video });
-    },
-    width: 640,  // Lower resolution initially makes it load faster
-    height: 480
-});
-
-// 3. Start Camera and handle the UI
-camera.start().then(() => {
-    console.log("Camera started successfully!");
-    // This hides your "Enable Permission" message once the camera is actually live
-    document.querySelector('.info p').innerText = "Tracking active!";
-}).catch((err) => {
-    console.error("Camera failed: ", err);
-});
-
+// --- 4. THE ONRESULTS FUNCTION (The "Brain" of your game) ---
 function onResults(results) {
-    // Make canvas match window size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     ctx.save();
+    // Mirror the canvas so it's easier to play
     ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1)
+    ctx.scale(-1, 1);
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw the webcam image onto the canvas so you can see yourself
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-    
 
-if (results.poseLandmarks) {
-    // 1. Get positions for both hands
-    const leftHand = results.poseLandmarks[19];
-    const rightHand = results.poseLandmarks[20];
+    if (results.poseLandmarks) {
+        // Use Index Finger Tips (19 and 20)
+        const lh = results.poseLandmarks[19];
+        const rh = results.poseLandmarks[20];
 
-    // Convert to pixel coordinates
-    const lx = leftHand.x * canvas.width;
-    const ly = leftHand.y * canvas.height;
-    const rx = rightHand.x * canvas.width;
-    const ry = rightHand.y * canvas.height;
+        const lx = lh.x * canvas.width;
+        const ly = lh.y * canvas.height;
+        const rx = rh.x * canvas.width;
+        const ry = rh.y * canvas.height;
 
-    const radius = 40; // Size of the circles
+        // Math: Distance between hands
+        const dist = Math.sqrt(Math.pow(rx - lx, 2) + Math.pow(ry - ly, 2));
+        const isClapping = dist < 70; // Adjust this number to make it easier/harder
 
-    // 2. Calculate distance between hands
-    const dx = rx - lx;
-    const dy = ry - ly;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+        // Math: Distance to the Pokemon
+        const avgX = (lx + rx) / 2;
+        const avgY = (ly + ry) / 2;
+        const distToTarget = Math.sqrt(Math.pow(avgX - targetX, 2) + Math.pow(avgY - targetY, 2));
 
-    // 3. Determine color (Blue if overlapping, Red if not)
-    // Overlap happens if distance is less than both radii combined (40 + 40 = 80)
-    let color = "red";
-    if (distance < radius * 2) {
-        color = "blue";
+        // DRAW THE POKEMON
+        const size = 150;
+        ctx.drawImage(pokeImg, targetX - size/2, targetY - size/2, size, size);
+
+        // CATCH LOGIC
+        if (isClapping && distToTarget < 80) {
+            catchCount++;
+            targetX = Math.random() * (canvas.width - 200) + 100;
+            targetY = Math.random() * (canvas.height - 200) + 100;
+            fetchRandomPokemon(); // Get a new one!
+        }
+
+        // DRAW HAND CIRCLES
+        ctx.fillStyle = isClapping ? "cyan" : "red";
+        ctx.beginPath(); ctx.arc(lx, ly, 25, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(rx, ry, 25, 0, 7); ctx.fill();
+        
+        // DRAW SCORE (Flip context back for text)
+        ctx.restore(); 
+        ctx.fillStyle = "white";
+        ctx.font = "bold 40px Arial";
+        ctx.fillText("CATCHES: " + catchCount, 50, 60);
+    } else {
+        ctx.restore();
     }
-
-    // 4. Draw Left Hand Circle
-    ctx.beginPath();
-    ctx.arc(lx, ly, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.6; // Make them slightly see-through
-    ctx.fill();
-
-    // 5. Draw Right Hand Circle
-    ctx.beginPath();
-    ctx.arc(rx, ry, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.globalAlpha = 1.0; // Reset transparency
-}
-    ctx.restore();
 }
     </script>
 </body>
