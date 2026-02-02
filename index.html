@@ -44,6 +44,7 @@
         const ctx = canvas.getContext('2d');
         const video = document.getElementById('video');
 
+        let highScore = localStorage.getItem("pokeHighScore") || 0;
         let startTime;
         let isImgLoading = false; 
         let catchCount = 0;
@@ -174,6 +175,10 @@
                 // --- CATCH LOGIC ---
                 if (isClapping && distToTarget < 110 && !isImgLoading) {
                     catchCount++;
+                   if (catchCount > highScore) {
+                    highScore = catchCount;
+                    localStorage.setItem("pokeHighScore", highScore);
+                    } 
                     if (navigator.vibrate) navigator.vibrate(50);
                     
                     // White catch flash
@@ -201,6 +206,8 @@
                 ctx.shadowColor = "black";
                 ctx.shadowBlur = 5;
                 ctx.fillText("CATCHES: " + catchCount, 50, 60);
+                ctx.font = "bold 20px Arial";
+                ctx.fillText("BEST: " + highScore, 50, 95)
             } else {
                 ctx.restore();
             }
