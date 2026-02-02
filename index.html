@@ -125,8 +125,8 @@ function onResults(results) {
 
 if (results.poseLandmarks) {
     // 1. Get positions for both hands
-    const leftHand = results.poseLandmarks[15];
-    const rightHand = results.poseLandmarks[16];
+    const leftHand = results.poseLandmarks[19];
+    const rightHand = results.poseLandmarks[20];
 
     // Convert to pixel coordinates
     const lx = leftHand.x * canvas.width;
