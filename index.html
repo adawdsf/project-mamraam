@@ -166,8 +166,9 @@
             ctx.fillRect(50, 80, canvas.width - 100, 15);
 
             // Draw Timer Bar Fill (Green turns Red when low)
-            ctx.fillStyle = barPercent > 0.3 ? "#00FF00" : "#FF0000";
-            ctx.fillStyle = barPercent > 0.5 ? "#00FF00" : "#FFFF00";
+            if(barPercent > 0.5){ctx.fillStyle = "#00FF00"}
+            else if(barPercent > 0.3 && barPercent < 0.5){ctx.fillStyle = "#FFFF00"}
+            else if(barPercent < 0.1){ctx.fillStyle = "#FF0000}
             ctx.fillRect(50, 80, (canvas.width - 100) * barPercent, 15);
         }
 
