@@ -119,14 +119,47 @@ function onResults(results) {
     
     // Draw the webcam image onto the canvas so you can see yourself
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    
 
-    if (results.poseLandmarks) {
-        // Draw connections using MediaPipe's built-in helper
-        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
-                      {color: '#00FF41', lineWidth: 4});
-        drawLandmarks(ctx, results.poseLandmarks,
-                      {color: '#FF00FF', lineWidth: 2});
+if (results.poseLandmarks) {
+    // 1. Get positions for both hands
+    const leftHand = results.poseLandmarks[15];
+    const rightHand = results.poseLandmarks[16];
+
+    // Convert to pixel coordinates
+    const lx = leftHand.x * canvas.width;
+    const ly = leftHand.y * canvas.height;
+    const rx = rightHand.x * canvas.width;
+    const ry = rightHand.y * canvas.height;
+
+    const radius = 40; // Size of the circles
+
+    // 2. Calculate distance between hands
+    const dx = rx - lx;
+    const dy = ry - ly;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // 3. Determine color (Blue if overlapping, Red if not)
+    // Overlap happens if distance is less than both radii combined (40 + 40 = 80)
+    let color = "red";
+    if (distance < radius * 2) {
+        color = "blue";
     }
+
+    // 4. Draw Left Hand Circle
+    ctx.beginPath();
+    ctx.arc(lx, ly, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.6; // Make them slightly see-through
+    ctx.fill();
+
+    // 5. Draw Right Hand Circle
+    ctx.beginPath();
+    ctx.arc(rx, ry, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1.0; // Reset transparency
+}
     ctx.restore();
 }
     </script>
