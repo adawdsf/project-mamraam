@@ -50,17 +50,15 @@
         let targetX = 300;
         let targetY = 200;
         let pokemonTimer;
+        let missFlash = 0; // New timer for the red flash effect
 
         const pokeImg = new Image();
         pokeImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png";
 
         function respawnPokemon() {
             if (isImgLoading) return;
-            // Flash red on miss
-            ctx.save();
-            ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
+            
+            missFlash = 10; // Trigger 10 frames of red flash
 
             targetX = Math.random() * (canvas.width - 200) + 100;
             targetY = Math.random() * (canvas.height - 200) + 100;
@@ -131,6 +129,13 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
+            // DRAW MISS FLASH OVER VIDEO
+            if (missFlash > 0) {
+                ctx.fillStyle = `rgba(255, 0, 0, ${missFlash / 15})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                missFlash--;
+            }
+
             if (results.poseLandmarks) {
                 document.querySelector('.info').style.opacity = "0.2";
                 
@@ -170,16 +175,11 @@
                 if (isClapping && distToTarget < 110 && !isImgLoading) {
                     catchCount++;
                     if (navigator.vibrate) navigator.vibrate(50);
+                    
+                    // White catch flash
                     ctx.fillStyle = "white";
                     ctx.fillRect(0,0, canvas.width, canvas.height);
                     
-                    // Particles
-                    for (let i = 0; i < 10; i++) {
-                        ctx.fillStyle = "gold";
-                        ctx.beginPath();
-                        ctx.arc(targetX + (Math.random()-0.5)*100, targetY + (Math.random()-0.5)*100, 5, 0, 7);
-                        ctx.fill();
-                    }
                     targetX = Math.random() * (canvas.width - 200) + 100;
                     targetY = Math.random() * (canvas.height - 200) + 100;
                     fetchRandomPokemon(); 
