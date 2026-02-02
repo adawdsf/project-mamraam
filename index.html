@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,11 +15,11 @@
         canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
         #video { display: none; }
         .info {
-            position: absolute; top: 20px; right: 20px; color: white;
-            background: rgba(0, 0, 0, 0.6); padding: 15px; border-radius: 10px; z-index: 10; text-align: right;
+            position: absolute; top: 20px; left: 20px; color: white;
+            background: rgba(0, 0, 0, 0.6); padding: 15px; border-radius: 10px; z-index: 10;
         }
         #restartBtn {
-            position: fixed; bottom: 20px; left: 20px; z-index: 100; 
+            position: fixed; bottom: 20px; right: 20px; z-index: 100; 
             padding: 15px; border-radius: 50px; border: none; 
             background: gold; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
         }
@@ -27,12 +27,12 @@
 </head>
 <body>
     <div class="container">
-        <button id="restartBtn" onclick="location.reload()">🔄 התחל מחדש</button>
+        <button id="restartBtn" onclick="location.reload()">🔄 RESTART</button>
         <canvas id="canvas"></canvas>
         <video id="video" playsinline autoplay muted style="width: 1px; height: 1px; opacity: 0.01; position: absolute;"></video>
         <div class="info">
-            <h2>פוקי-תפוס AR</h2>
-            <p id="status">לחצו על המסך כדי להתחיל!</p>
+            <h2>PokeCatch AR</h2>
+            <p id="status">Tap screen to start!</p>
         </div>
     </div>
 
@@ -56,7 +56,7 @@
 
         function respawnPokemon() {
             if (isImgLoading) return;
-            // Red Flash for Missing
+            // Flash red on miss
             ctx.save();
             ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -111,11 +111,11 @@
 
         async function startApp() {
             try {
-                document.getElementById('status').innerText = "טוען... נא לעמוד רחוק!";
+                document.getElementById('status').innerText = "AI Loading... Stand Back!";
                 await camera.start();
                 video.play();
                 fetchRandomPokemon();
-            } catch (err) { alert("שגיאת מצלמה!"); }
+            } catch (err) { alert("Camera Error!"); }
         }
 
         document.body.addEventListener('click', startApp, { once: true });
@@ -155,9 +155,11 @@
                     let barPercent = Math.max(0, (2000 - elapsed) / 2000);
                     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
                     ctx.fillRect(50, 80, canvas.width - 100, 15);
+                    
                     if(barPercent > 0.5) ctx.fillStyle = "#00FF00";
                     else if(barPercent > 0.2) ctx.fillStyle = "#FFFF00";
                     else ctx.fillStyle = "#FF0000";
+                    
                     ctx.fillRect(50, 80, (canvas.width - 100) * barPercent, 15);
                 }
 
@@ -170,6 +172,15 @@
                     if (navigator.vibrate) navigator.vibrate(50);
                     ctx.fillStyle = "white";
                     ctx.fillRect(0,0, canvas.width, canvas.height);
+                    
+                    // Particles
+                    for (let i = 0; i < 10; i++) {
+                        ctx.fillStyle = "gold";
+                        ctx.beginPath();
+                        ctx.arc(targetX + (Math.random()-0.5)*100, targetY + (Math.random()-0.5)*100, 5, 0, 7);
+                        ctx.fill();
+                    }
+                    
                     fetchRandomPokemon(); 
                 }
 
@@ -186,7 +197,9 @@
                 // UI TEXT
                 ctx.fillStyle = "gold";
                 ctx.font = "bold 40px Arial";
-                ctx.fillText("תפיסות: " + catchCount, 50, 60);
+                ctx.shadowColor = "black";
+                ctx.shadowBlur = 5;
+                ctx.fillText("CATCHES: " + catchCount, 50, 60);
             } else {
                 ctx.restore();
             }
