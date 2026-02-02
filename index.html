@@ -126,7 +126,7 @@
             width: 640,
             height: 480
         });
-
+        video.play().catch(e => console.log("Video waiting for user interaction"));
         camera.start();
 
         function onResults(results) {
