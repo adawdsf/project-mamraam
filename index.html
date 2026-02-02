@@ -71,123 +71,64 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const video = document.getElementById('video');
+       const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const video = document.getElementById('video');
 
-        // Set canvas size
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+// 1. Initialize Pose with the correct file locator
+const pose = new Pose({
+    locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+    }
+});
 
-        // MediaPipe Pose setup
-        const pose = new Pose({
-            lockedAspectRatio: true,
-            modelComplexity: 1,
-            smoothLandmarks: true,
-            enableSegmentation: false,
-            smoothSegmentation: false,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
+pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+});
 
-        pose.onResults(onResults);
+pose.onResults(onResults);
 
-        // Camera setup
-        const camera = new Camera(video, {
-            onFrame: async () => {
-                await pose.send({ image: video });
-            },
-            width: 1280,
-            height: 720
-        });
-        camera.start();
+// 2. Setup Camera
+const camera = new Camera(video, {
+    onFrame: async () => {
+        await pose.send({ image: video });
+    },
+    width: 640,  // Lower resolution initially makes it load faster
+    height: 480
+});
 
-        // Define connections between pose landmarks (skeleton)
-        const connections = [
-            // Head
-            [0, 1], [1, 2], [2, 3], [3, 7],
-            [0, 4], [4, 5], [5, 6], [6, 8],
-            
-            // Torso
-            [9, 10],
-            
-            // Left arm
-            [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 15],
-            
-            // Right arm
-            [12, 14], [14, 16], [16, 18], [18, 20], [20, 22], [22, 16],
-            
-            // Torso to arms
-            [11, 12],
-            
-            // Left leg
-            [23, 25], [25, 27], [27, 29], [29, 31],
-            
-            // Right leg
-            [24, 26], [26, 28], [28, 30], [30, 32],
-            
-            // Hips
-            [23, 24],
-            
-            // Torso to legs
-            [11, 23], [12, 24]
-        ];
+// 3. Start Camera and handle the UI
+camera.start().then(() => {
+    console.log("Camera started successfully!");
+    // This hides your "Enable Permission" message once the camera is actually live
+    document.querySelector('.info p').innerText = "Tracking active!";
+}).catch((err) => {
+    console.error("Camera failed: ", err);
+});
 
-        function onResults(results) {
-            // Clear canvas
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+function onResults(results) {
+    // Make canvas match window size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-            if (results.poseLandmarks && results.poseLandmarks.length > 0) {
-                // Scale factors
-                const scaleX = canvas.width / results.image.width;
-                const scaleY = canvas.height / results.image.height;
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the webcam image onto the canvas so you can see yourself
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-                // Draw connections (skeleton lines)
-                ctx.strokeStyle = '#00FF41';
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-
-                for (const [start, end] of connections) {
-                    const startLandmark = results.poseLandmarks[start];
-                    const endLandmark = results.poseLandmarks[end];
-
-                    if (startLandmark.visibility > 0.3 && endLandmark.visibility > 0.3) {
-                        ctx.beginPath();
-                        ctx.moveTo(
-                            startLandmark.x * scaleX,
-                            startLandmark.y * scaleY
-                        );
-                        ctx.lineTo(
-                            endLandmark.x * scaleX,
-                            endLandmark.y * scaleY
-                        );
-                        ctx.stroke();
-                    }
-                }
-
-                // Draw landmarks (joints as circles)
-                for (const landmark of results.poseLandmarks) {
-                    if (landmark.visibility > 0.3) {
-                        ctx.fillStyle = '#FF00FF';
-                        ctx.beginPath();
-                        ctx.arc(
-                            landmark.x * scaleX,
-                            landmark.y * scaleY,
-                            5,
-                            0,
-                            2 * Math.PI
-                        );
-                        ctx.fill();
-                    }
-                }
-            }
-        }
+    if (results.poseLandmarks) {
+        // Draw connections using MediaPipe's built-in helper
+        drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+                      {color: '#00FF41', lineWidth: 4});
+        drawLandmarks(ctx, results.poseLandmarks,
+                      {color: '#FF00FF', lineWidth: 2});
+    }
+    ctx.restore();
+}
     </script>
 </body>
 </html>
