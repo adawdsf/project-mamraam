@@ -58,6 +58,8 @@
         // --- TIMER LOGIC ---
         function respawnPokemon() {
             if (isImgLoading) return;
+            ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             targetX = Math.random() * (canvas.width - 200) + 100;
             targetY = Math.random() * (canvas.height - 200) + 100;
             fetchRandomPokemon();
@@ -180,6 +182,13 @@
         // --- CATCH LOGIC ---
         if (isClapping && distToTarget < 110 && !isImgLoading) {
             catchCount++;
+        if (isClapping) {
+    ctx.fillStyle = "cyan";
+} else if (distToTarget < 150) {
+    ctx.fillStyle = "yellow"; // You're getting close!
+} else {
+    ctx.fillStyle = "red";
+}
             
             // POCO Vibration
             if (navigator.vibrate) navigator.vibrate(50);
@@ -214,6 +223,7 @@
         ctx.shadowColor = "black";
         ctx.shadowBlur = 5;
         ctx.fillText("CATCHES: " + catchCount, 50, 60);
+        
     } else {
         ctx.restore();
     }
