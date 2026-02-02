@@ -44,7 +44,8 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const video = document.getElementById('video');
-        
+
+        let startTime;
         let isImgLoading = false; 
         let catchCount = 0;
         let targetX = 300;
@@ -77,7 +78,7 @@
                 nextImg.onload = () => {
                     pokeImg.src = nextImg.src;
                     isImgLoading = false;
-                    // Start 3s timer ONLY after image is ready
+                    startTime = Date.now()
                     pokemonTimer = setTimeout(respawnPokemon, 2000); 
                 };
             } catch (error) {
@@ -122,72 +123,99 @@
         document.body.addEventListener('touchstart', startApp, { once: true });
 
         // --- MAIN GAME LOOP ---
-        function onResults(results) {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+       function onResults(results) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+    if (results.poseLandmarks) {
+        // Lower opacity of instructions once game starts
+        document.querySelector('.info').style.opacity = "0.2";
+        
+        const lh = results.poseLandmarks[19]; // Left hand
+        const rh = results.poseLandmarks[20]; // Right hand
+        
+        const lx = lh.x * canvas.width;
+        const ly = lh.y * canvas.height;
+        const rx = rh.x * canvas.width;
+        const ry = rh.y * canvas.height;
+
+        // Math for clapping and distance
+        const dist = Math.sqrt(Math.pow(rx - lx, 2) + Math.pow(ry - ly, 2));
+        const isClapping = dist < 110; 
+        
+        const avgX = (lx + rx) / 2;
+        const avgY = (ly + ry) / 2;
+        const distToTarget = Math.sqrt(Math.pow(avgX - targetX, 2) + Math.pow(avgY - targetY, 2));
+
+        const size = 180;
+
+        // --- TIMER BAR LOGIC ---
+        if (!isImgLoading && startTime) {
+            let elapsed = Date.now() - startTime;
+            let remaining = 2000 - elapsed; // Your 2-second setting
+            let barPercent = Math.max(0, remaining / 2000);
             
-            ctx.save();
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+            // Draw Timer Bar Background
+            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.fillRect(50, 80, canvas.width - 100, 15);
 
-            if (results.poseLandmarks) {
-                document.querySelector('.info').style.opacity = "0.2";
-                
-                const lh = results.poseLandmarks[19]; // Left Index
-                const rh = results.poseLandmarks[20]; // Right Index
-                
-                const lx = lh.x * canvas.width;
-                const ly = lh.y * canvas.height;
-                const rx = rh.x * canvas.width;
-                const ry = rh.y * canvas.height;
-
-                const dist = Math.sqrt(Math.pow(rx - lx, 2) + Math.pow(ry - ly, 2));
-                const isClapping = dist < 110; 
-                
-                const avgX = (lx + rx) / 2;
-                const avgY = (ly + ry) / 2;
-                const distToTarget = Math.sqrt(Math.pow(avgX - targetX, 2) + Math.pow(avgY - targetY, 2));
-
-                const size = 180;
-
-                // Draw Pokemon if not loading
-                if(!isImgLoading){
-                    ctx.drawImage(pokeImg, targetX - size/2, targetY - size/2, size, size);
-                }
-
-                // Catch Logic
-                if (isClapping && distToTarget < 110 && !isImgLoading) {
-                    catchCount++;
-                    
-                    // Visual Feedback
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(0,0, canvas.width, canvas.height);
-                    
-                    targetX = Math.random() * (canvas.width - 200) + 100;
-                    targetY = Math.random() * (canvas.height - 200) + 100;
-                    
-                    fetchRandomPokemon(); 
-                }
-
-                // Hand trackers
-                ctx.fillStyle = isClapping ? "cyan" : "red";
-                ctx.beginPath(); ctx.arc(lx, ly, 20, 0, 7); ctx.fill();
-                ctx.beginPath(); ctx.arc(rx, ry, 20, 0, 7); ctx.fill();
-                
-                ctx.restore(); 
-                
-                // Score text
-                ctx.fillStyle = "gold";
-                ctx.font = "bold 40px Arial";
-                ctx.shadowColor = "black";
-                ctx.shadowBlur = 5;
-                ctx.fillText("CATCHES: " + catchCount, 50, 60);
-            } else {
-                ctx.restore();
-            }
+            // Draw Timer Bar Fill (Green turns Red when low)
+            ctx.fillStyle = barPercent > 0.3 ? "#00FF00" : "#FF0000";
+            ctx.fillRect(50, 80, (canvas.width - 100) * barPercent, 15);
         }
+
+        // Draw Pokemon
+        if(!isImgLoading){
+            ctx.drawImage(pokeImg, targetX - size/2, targetY - size/2, size, size);
+        }
+
+        // --- CATCH LOGIC ---
+        if (isClapping && distToTarget < 110 && !isImgLoading) {
+            catchCount++;
+            
+            // POCO Vibration
+            if (navigator.vibrate) navigator.vibrate(50);
+
+            // White Flash & Particle "Explosion"
+            ctx.fillStyle = "white";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < 15; i++) {
+                ctx.fillStyle = "gold";
+                ctx.beginPath();
+                ctx.arc(targetX + (Math.random()-0.5)*200, targetY + (Math.random()-0.5)*200, 8, 0, 7);
+                ctx.fill();
+            }
+            
+            targetX = Math.random() * (canvas.width - 200) + 100;
+            targetY = Math.random() * (canvas.height - 200) + 100;
+            
+            fetchRandomPokemon(); 
+        }
+
+        // Draw Hand Trackers
+        ctx.fillStyle = isClapping ? "cyan" : "red";
+        ctx.beginPath(); ctx.arc(lx, ly, 20, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(rx, ry, 20, 0, 7); ctx.fill();
+        
+        ctx.restore(); 
+        
+        // UI Text (Fixed position outside the translate/scale)
+        ctx.fillStyle = "gold";
+        ctx.font = "bold 40px Arial";
+        ctx.shadowColor = "black";
+        ctx.shadowBlur = 5;
+        ctx.fillText("CATCHES: " + catchCount, 50, 60);
+    } else {
+        ctx.restore();
+    }
+}
     </script>
 </body>
 </html>
