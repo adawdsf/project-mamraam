@@ -62,7 +62,8 @@
   🔄 Restart Game
 </button>
         <canvas id="canvas"></canvas>
-        <video id="video" playsinline autoplay muted></video>
+        <video id="video" playsinline autoplay muted 
+       style="width: 1px; height: 1px; opacity: 0.01; position: absolute;"></video>
         <div class="info">
             <h2>Pose Tracker</h2>
             <p>Allow camera access to start tracking your pose!</p>
@@ -129,13 +130,20 @@
             width: 640,
             height: 480
         });
-        video.play().catch(e => console.log("Video waiting for user interaction"));
-        console.log("Waiting for AI to wake up...");
-setTimeout(() => {
-    camera.start().then(() => {
-        console.log("Camera started after delay!");
-    });
-}, 2000); // 2000ms = 2 seconds
+async function startApp() {
+    try {
+        await camera.start();
+        // Force the video element to play manually
+        video.play();
+        document.querySelector('.info p').innerText = "AI Loading... Please wait 5 seconds.";
+    } catch (err) {
+        alert("Camera Error: " + err);
+    }
+}
+
+// Android/POCO Fix: The camera MUST start from a user tap
+document.body.addEventListener('click', startApp, { once: true });
+document.body.addEventListener('touchstart', startApp, { once: true });
 
         function onResults(results) {
             canvas.width = window.innerWidth;
