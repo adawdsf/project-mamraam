@@ -127,7 +127,12 @@
             height: 480
         });
         video.play().catch(e => console.log("Video waiting for user interaction"));
-        camera.start();
+        console.log("Waiting for AI to wake up...");
+setTimeout(() => {
+    camera.start().then(() => {
+        console.log("Camera started after delay!");
+    });
+}, 2000); // 2000ms = 2 seconds
 
         function onResults(results) {
             canvas.width = window.innerWidth;
