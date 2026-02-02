@@ -115,6 +115,8 @@ function onResults(results) {
     canvas.height = window.innerHeight;
 
     ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Draw the webcam image onto the canvas so you can see yourself
