@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,29 +15,28 @@
         canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
         #video { display: none; }
         .info {
-            position: absolute; top: 20px; left: 20px; color: white;
-            background: rgba(0, 0, 0, 0.6); padding: 15px; border-radius: 10px; z-index: 10;
+            position: absolute; top: 20px; right: 20px; color: white;
+            background: rgba(0, 0, 0, 0.6); padding: 15px; border-radius: 10px; z-index: 10; text-align: right;
         }
         #restartBtn {
-            position: fixed; bottom: 20px; right: 20px; z-index: 100; 
+            position: fixed; bottom: 20px; left: 20px; z-index: 100; 
             padding: 15px; border-radius: 50px; border: none; 
-            background: gold; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: gold; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <button id="restartBtn" onclick="location.reload()">🔄 RESTART</button>
+        <button id="restartBtn" onclick="location.reload()">🔄 התחל מחדש</button>
         <canvas id="canvas"></canvas>
         <video id="video" playsinline autoplay muted style="width: 1px; height: 1px; opacity: 0.01; position: absolute;"></video>
         <div class="info">
-            <h2>PokeCatch AR</h2>
-            <p id="status">Tap screen to start!</p>
+            <h2>פוקי-תפוס AR</h2>
+            <p id="status">לחצו על המסך כדי להתחיל!</p>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 
     <script>
@@ -50,16 +49,19 @@
         let catchCount = 0;
         let targetX = 300;
         let targetY = 200;
-        let pokemonTimer; // The 3-second countdown
+        let pokemonTimer;
 
         const pokeImg = new Image();
         pokeImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png";
 
-        // --- TIMER LOGIC ---
         function respawnPokemon() {
             if (isImgLoading) return;
+            // Red Flash for Missing
+            ctx.save();
             ctx.fillStyle = "rgba(255, 0, 0, 0.4)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
             targetX = Math.random() * (canvas.width - 200) + 100;
             targetY = Math.random() * (canvas.height - 200) + 100;
             fetchRandomPokemon();
@@ -67,7 +69,7 @@
 
         async function fetchRandomPokemon() {
             isImgLoading = true;
-            clearTimeout(pokemonTimer); // Kill timer while loading
+            clearTimeout(pokemonTimer);
 
             try {
                 const randomId = Math.floor(Math.random() * 151) + 1;
@@ -80,23 +82,21 @@
                 nextImg.onload = () => {
                     pokeImg.src = nextImg.src;
                     isImgLoading = false;
-                    startTime = Date.now()
+                    startTime = Date.now();
                     pokemonTimer = setTimeout(respawnPokemon, 2000); 
                 };
             } catch (error) {
-                console.error("API Error:", error);
                 isImgLoading = false;
                 pokemonTimer = setTimeout(respawnPokemon, 1000);
             }
         }
 
-        // --- MEDIAPIPE SETUP ---
         const pose = new Pose({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
         });
 
         pose.setOptions({
-            modelComplexity: 0, // Optimized for POCO X3 Pro performance
+            modelComplexity: 0,
             smoothLandmarks: true,
             minDetectionConfidence: 0.5,
             minTrackingConfidence: 0.5
@@ -105,129 +105,92 @@
         pose.onResults(onResults);
 
         const camera = new Camera(video, {
-            onFrame: async () => { if(pose) await pose.send({ image: video }); },
+            onFrame: async () => { await pose.send({ image: video }); },
             width: 640, height: 480
         });
 
-        // --- START APP ON TAP ---
         async function startApp() {
             try {
-                document.getElementById('status').innerText = "Loading AI... Stand back!";
+                document.getElementById('status').innerText = "טוען... נא לעמוד רחוק!";
                 await camera.start();
                 video.play();
-                fetchRandomPokemon(); // Start the first spawn and timer
-            } catch (err) { 
-                alert("Camera Error. Check permissions!"); 
-            }
+                fetchRandomPokemon();
+            } catch (err) { alert("שגיאת מצלמה!"); }
         }
 
         document.body.addEventListener('click', startApp, { once: true });
         document.body.addEventListener('touchstart', startApp, { once: true });
 
-        // --- MAIN GAME LOOP ---
-       function onResults(results) {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    ctx.save();
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
-    if (results.poseLandmarks) {
-        // Lower opacity of instructions once game starts
-        document.querySelector('.info').style.opacity = "0.2";
-        
-        const lh = results.poseLandmarks[19]; // Left hand
-        const rh = results.poseLandmarks[20]; // Right hand
-        
-        const lx = lh.x * canvas.width;
-        const ly = lh.y * canvas.height;
-        const rx = rh.x * canvas.width;
-        const ry = rh.y * canvas.height;
-
-        // Math for clapping and distance
-        const dist = Math.sqrt(Math.pow(rx - lx, 2) + Math.pow(ry - ly, 2));
-        const isClapping = dist < 110; 
-        
-        const avgX = (lx + rx) / 2;
-        const avgY = (ly + ry) / 2;
-        const distToTarget = Math.sqrt(Math.pow(avgX - targetX, 2) + Math.pow(avgY - targetY, 2));
-
-        const size = 180;
-
-        // --- TIMER BAR LOGIC ---
-        if (!isImgLoading && startTime) {
-            let elapsed = Date.now() - startTime;
-            let remaining = 2000 - elapsed; // Your 2-second setting
-            let barPercent = Math.max(0, remaining / 2000);
+        function onResults(results) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             
-            // Draw Timer Bar Background
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-            ctx.fillRect(50, 80, canvas.width - 100, 15);
+            ctx.save();
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-            // Draw Timer Bar Fill (Green turns Red when low)
-            if(barPercent > 0.5){ctx.fillStyle = "#00FF00"}
-            else if(barPercent > 0.3 && barPercent < 0.5){ctx.fillStyle = "#FFFF00"}
-            else{ctx.fillStyle = "#FF0000"}
-            ctx.fillRect(50, 80, (canvas.width - 100) * barPercent, 15);
-        }
+            if (results.poseLandmarks) {
+                document.querySelector('.info').style.opacity = "0.2";
+                
+                const lh = results.poseLandmarks[19];
+                const rh = results.poseLandmarks[20];
+                
+                const lx = lh.x * canvas.width;
+                const ly = lh.y * canvas.height;
+                const rx = rh.x * canvas.width;
+                const ry = rh.y * canvas.height;
 
-        // Draw Pokemon
-        if(!isImgLoading){
-            ctx.drawImage(pokeImg, targetX - size/2, targetY - size/2, size, size);
-        }
+                const dist = Math.sqrt(Math.pow(rx - lx, 2) + Math.pow(ry - ly, 2));
+                const isClapping = dist < 110; 
+                
+                const avgX = (lx + rx) / 2;
+                const avgY = (ly + ry) / 2;
+                const distToTarget = Math.sqrt(Math.pow(avgX - targetX, 2) + Math.pow(avgY - targetY, 2));
 
-        // --- CATCH LOGIC ---
-        if (isClapping && distToTarget < 110 && !isImgLoading) {
-            catchCount++;
-        if (isClapping) {
-    ctx.fillStyle = "cyan";
-} else if (distToTarget < 150) {
-    ctx.fillStyle = "yellow"; // You're getting close!
-} else {
-    ctx.fillStyle = "red";
-}
-            
-            // POCO Vibration
-            if (navigator.vibrate) navigator.vibrate(50);
+                // --- TIMER BAR ---
+                if (!isImgLoading && startTime) {
+                    let elapsed = Date.now() - startTime;
+                    let barPercent = Math.max(0, (2000 - elapsed) / 2000);
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                    ctx.fillRect(50, 80, canvas.width - 100, 15);
+                    if(barPercent > 0.5) ctx.fillStyle = "#00FF00";
+                    else if(barPercent > 0.2) ctx.fillStyle = "#FFFF00";
+                    else ctx.fillStyle = "#FF0000";
+                    ctx.fillRect(50, 80, (canvas.width - 100) * barPercent, 15);
+                }
 
-            // White Flash & Particle "Explosion"
-            ctx.fillStyle = "white";
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-            
-            for (let i = 0; i < 15; i++) {
+                // Draw Pokemon
+                if(!isImgLoading) ctx.drawImage(pokeImg, targetX - 90, targetY - 90, 180, 180);
+
+                // --- CATCH LOGIC ---
+                if (isClapping && distToTarget < 110 && !isImgLoading) {
+                    catchCount++;
+                    if (navigator.vibrate) navigator.vibrate(50);
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(0,0, canvas.width, canvas.height);
+                    fetchRandomPokemon(); 
+                }
+
+                // --- HAND TRACKER COLORS ---
+                if (isClapping) ctx.fillStyle = "cyan";
+                else if (distToTarget < 150) ctx.fillStyle = "yellow";
+                else ctx.fillStyle = "red";
+
+                ctx.beginPath(); ctx.arc(lx, ly, 20, 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(rx, ry, 20, 0, 7); ctx.fill();
+                
+                ctx.restore(); 
+                
+                // UI TEXT
                 ctx.fillStyle = "gold";
-                ctx.beginPath();
-                ctx.arc(targetX + (Math.random()-0.5)*200, targetY + (Math.random()-0.5)*200, 8, 0, 7);
-                ctx.fill();
+                ctx.font = "bold 40px Arial";
+                ctx.fillText("תפיסות: " + catchCount, 50, 60);
+            } else {
+                ctx.restore();
             }
-            
-            targetX = Math.random() * (canvas.width - 200) + 100;
-            targetY = Math.random() * (canvas.height - 200) + 100;
-            
-            fetchRandomPokemon(); 
         }
-
-        // Draw Hand Trackers
-        ctx.fillStyle = isClapping ? "cyan" : "red";
-        ctx.beginPath(); ctx.arc(lx, ly, 20, 0, 7); ctx.fill();
-        ctx.beginPath(); ctx.arc(rx, ry, 20, 0, 7); ctx.fill();
-        
-        ctx.restore(); 
-        
-        // UI Text (Fixed position outside the translate/scale)
-        ctx.fillStyle = "gold";
-        ctx.font = "bold 40px Arial";
-        ctx.shadowColor = "black";
-        ctx.shadowBlur = 5;
-        ctx.fillText("CATCHES: " + catchCount, 50, 60);
-        
-    } else {
-        ctx.restore();
-    }
-}
     </script>
 </body>
 </html>
