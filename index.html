@@ -38,6 +38,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 
     <script>
+        let pokemonTimer;
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const video = document.getElementById('video');
@@ -91,6 +92,7 @@
                 await camera.start();
                 video.play();
                 document.querySelector('.info p').innerText = "Stand back and wait for the camera!";
+                respawnPokemon()
             } catch (err) { alert("Camera Error: " + err); }
         }
 
@@ -137,6 +139,20 @@
                     targetY = Math.random() * (canvas.height - 200) + 100;
                     fetchRandomPokemon();
                 }
+                function respawnPokemon() {
+    // 1. Clear any old timers so they don't double up
+    clearTimeout(pokemonTimer);
+    
+    // 2. Move to a new spot
+    targetX = Math.random() * (canvas.width - 200) + 100;
+    targetY = Math.random() * (canvas.height - 200) + 100;
+    
+    // 3. Get a new Pokemon
+    fetchRandomPokemon();
+    
+    // 4. Start the 3-second clock again for the new one!
+    pokemonTimer = setTimeout(respawnPokemon, 3000); 
+}
 
                 ctx.fillStyle = isClapping ? "cyan" : "red";
                 ctx.beginPath(); ctx.arc(lx, ly, 25, 0, 7); ctx.fill();
