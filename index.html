@@ -127,7 +127,7 @@
                     ctx.drawImage(pokeImg, targetX - size/2, targetY - size/2, size, size);
                 }
 
-                if (isClapping && distToTarget < 100) {
+                if (isClapping && distToTarget < 100 && !isImgLoading) {
                     catchCount++;
                     // Flash effect
                     ctx.fillStyle = "white";
